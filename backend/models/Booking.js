@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const bookingSchema = new mongoose.Schema(
@@ -38,7 +39,7 @@ const bookingSchema = new mongoose.Schema(
         "Cancelled",
         "Completed",
       ],
-      default: "Pending",
+      default: "Confirmed",
     },
 
     paymentStatus: {

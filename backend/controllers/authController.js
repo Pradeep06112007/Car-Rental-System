@@ -1,4 +1,3 @@
-
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -37,7 +36,7 @@ const registerUser = async (req, res) => {
       name: name.trim(),
       email: normalizedEmail,
       password: hashedPassword,
-      phone,
+      phone: phone || "",
     });
 
     return res.status(201).json({
@@ -50,16 +49,16 @@ const registerUser = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Registration error:", error);
+
     if (error.code === 11000) {
       return res.status(409).json({
         message: "Email is already registered",
       });
     }
 
-    console.error("Registration error:", error.message);
-
     return res.status(500).json({
-      message: "Registration failed",
+      message: error.message || "Registration failed",
     });
   }
 };
@@ -74,8 +73,10 @@ const loginUser = async (req, res) => {
       });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
     const user = await User.findOne({
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
     }).select("+password");
 
     if (!user) {
@@ -96,7 +97,9 @@ const loginUser = async (req, res) => {
     }
 
     if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET is not configured");
+      return res.status(500).json({
+        message: "JWT_SECRET is not configured in .env",
+      });
     }
 
     const token = jwt.sign(
@@ -105,7 +108,9 @@ const loginUser = async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      {
+        expiresIn: "1d",
+      }
     );
 
     return res.status(200).json({
@@ -119,10 +124,10 @@ const loginUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Login error:", error.message);
+    console.error("LOGIN ERROR:", error);
 
     return res.status(500).json({
-      message: "Login failed",
+      message: error.message || "Login failed",
     });
   }
 };

@@ -8,18 +8,21 @@ const createBooking = async (req, res) => {
   try {
     const { carId, startDate, endDate } = req.body;
 
+    // Validate required fields
     if (!carId || !startDate || !endDate) {
       return res.status(400).json({
         message: "Please provide carId, startDate, and endDate",
       });
     }
 
+    // Validate MongoDB car ID
     if (!mongoose.isValidObjectId(carId)) {
       return res.status(400).json({
         message: "Invalid car ID",
       });
     }
 
+    // Validate dates
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -37,6 +40,7 @@ const createBooking = async (req, res) => {
       });
     }
 
+    // Find the selected car
     const car = await Car.findById(carId);
 
     if (!car || !car.isAvailable) {
@@ -45,16 +49,9 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // Calculate rental days and total amount
-    const millisecondsPerDay = 24 * 60 * 60 * 1000;
-    const days = Math.ceil(
-      (end.getTime() - start.getTime()) / millisecondsPerDay
-    );
-    const totalAmount = days * car.pricePerDay;
-
-    // Prevent overlapping active bookings
+    // Check for overlapping active bookings
     const overlappingBooking = await Booking.findOne({
-      car: carId,
+      car: car._id,
       bookingStatus: { $in: ["Pending", "Confirmed"] },
       startDate: { $lt: end },
       endDate: { $gt: start },
@@ -62,11 +59,25 @@ const createBooking = async (req, res) => {
 
     if (overlappingBooking) {
       return res.status(409).json({
-        message: "Car is already booked for those dates",
+        message: "This car is already booked for those dates.",
       });
     }
 
-    // Save the booking
+    // Calculate rental cost
+    const millisecondsPerDay = 24 * 60 * 60 * 1000;
+    const days = Math.ceil(
+      (end.getTime() - start.getTime()) / millisecondsPerDay
+    );
+
+    const totalAmount = days * Number(car.pricePerDay);
+
+    if (!Number.isFinite(totalAmount) || totalAmount < 0) {
+      return res.status(400).json({
+        message: "Unable to calculate the rental amount.",
+      });
+    }
+
+    // Create booking
     const booking = await Booking.create({
       user: req.user.id,
       car: car._id,
@@ -75,7 +86,6 @@ const createBooking = async (req, res) => {
       totalAmount,
     });
 
-    // Explicitly return the amount and booking details
     return res.status(201).json({
       message: "Booking created successfully",
       booking: {
@@ -94,7 +104,7 @@ const createBooking = async (req, res) => {
     console.error("Create booking error:", error);
 
     return res.status(500).json({
-      message: error.message || "Failed to create booking",
+      message: "Failed to create booking",
     });
   }
 };

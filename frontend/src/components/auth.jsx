@@ -4,17 +4,20 @@ import axios from "axios";
 
 const API_URL = "http://localhost:5000/api/auth";
 
-export default function Auth({ onLogin, onClose }) {
+export default function Auth({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
+
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     setMessage("");
     setLoading(true);
 
@@ -25,7 +28,10 @@ export default function Auth({ onLogin, onClose }) {
         ? { email, password }
         : { name, email, password, phone };
 
-      const response = await axios.post(`${API_URL}${endpoint}`, payload);
+      const response = await axios.post(
+        `${API_URL}${endpoint}`,
+        payload
+      );
 
       if (isLogin) {
         const { token, user } = response.data;
@@ -33,13 +39,12 @@ export default function Auth({ onLogin, onClose }) {
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
 
-        setMessage("Login successful!");
-
-        if (onLogin) {
-          onLogin(token, user);
-        }
+        onLogin(token, user);
       } else {
-        setMessage("Registration successful! You can now log in.");
+        setMessage(
+          "Registration successful! Please login."
+        );
+
         setIsLogin(true);
         setPassword("");
       }
@@ -54,88 +59,204 @@ export default function Auth({ onLogin, onClose }) {
   };
 
   return (
-    <div className="booking-overlay">
-      <form className="booking-form" onSubmit={handleSubmit}>
-        {onClose && (
-          <button
-            type="button"
-            className="booking-close"
-            onClick={onClose}
-          >
-            Close
-          </button>
-        )}
+    <div className="login-page">
+      {/* LEFT SIDE: DODGE CHALLENGER HERO */}
 
-        <h2>{isLogin ? "Login" : "Create Account"}</h2>
+      <section className="login-left">
+        <div
+          className="login-hero-background"
+          aria-hidden="true"
+        >
+          <img
+            src="/dodge-challenger.png"
+            alt=""
+            className="login-dodge-image"
+          />
+        </div>
 
-        <p>
-          {isLogin
-            ? "Log in to book your favourite car."
-            : "Register to start renting cars."}
-        </p>
+        <div className="login-left-content">
+          <div className="login-logo">
+            CarRental<span>■</span>
+          </div>
 
-        {!isLogin && (
-          <>
-            <label htmlFor="auth-name">Full name</label>
+          <div className="login-small-title">
+            YOUR JOURNEY STARTS HERE
+          </div>
+
+          <h1 className="login-main-title">
+            Find the right car
+            <br />
+            for your next journey.
+          </h1>
+
+          <p className="login-description">
+            Book reliable cars quickly and easily.
+            Manage your bookings from one place.
+          </p>
+
+          <div className="login-steps">
+            <div className="login-step">
+              <strong>01</strong>
+              Choose your car
+            </div>
+
+            <div className="login-step">
+              <strong>02</strong>
+              Select your dates
+            </div>
+
+            <div className="login-step">
+              <strong>03</strong>
+              Start your journey
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* RIGHT SIDE: LOGIN AND REGISTRATION */}
+
+      <section className="login-right">
+        <form
+          className="login-card"
+          onSubmit={handleSubmit}
+        >
+          <h2>
+            {isLogin
+              ? "Sign in to your account"
+              : "Create your account"}
+          </h2>
+
+          <p className="login-card-description">
+            {isLogin
+              ? "Log in to continue booking your favourite car."
+              : "Create an account to start renting cars."}
+          </p>
+
+          {!isLogin && (
+            <>
+              <div className="login-field">
+                <label htmlFor="name">
+                  Full name
+                </label>
+
+                <input
+                  id="name"
+                  type="text"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={(e) =>
+                    setName(e.target.value)
+                  }
+                  autoComplete="name"
+                  required
+                />
+              </div>
+
+              <div className="login-field">
+                <label htmlFor="phone">
+                  Phone number
+                </label>
+
+                <input
+                  id="phone"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  value={phone}
+                  onChange={(e) =>
+                    setPhone(e.target.value)
+                  }
+                  autoComplete="tel"
+                />
+              </div>
+            </>
+          )}
+
+          <div className="login-field">
+            <label htmlFor="email">
+              Email
+            </label>
+
             <input
-              id="auth-name"
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
+              id="email"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
+              autoComplete="email"
               required
             />
+          </div>
 
-            <label htmlFor="auth-phone">Phone number (optional)</label>
+          <div className="login-field">
+            <label htmlFor="password">
+              Password
+            </label>
+
             <input
-              id="auth-phone"
-              type="tel"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+              autoComplete={
+                isLogin
+                  ? "current-password"
+                  : "new-password"
+              }
+              minLength={8}
+              required
             />
-          </>
-        )}
+          </div>
 
-        <label htmlFor="auth-email">Email</label>
-        <input
-          id="auth-email"
-          type="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          required
-        />
+          {message && (
+            <p
+              className="login-message"
+              role="status"
+              aria-live="polite"
+            >
+              {message}
+            </p>
+          )}
 
-        <label htmlFor="auth-password">Password</label>
-        <input
-          id="auth-password"
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          minLength={8}
-          required
-        />
+          <button
+            type="submit"
+            className="login-button"
+            disabled={loading}
+          >
+            {loading
+              ? "Please wait..."
+              : isLogin
+              ? "Sign in →"
+              : "Create account →"}
+          </button>
 
-        {message && <p role="status">{message}</p>}
+          <div className="login-divider">
+            OR
+          </div>
 
-        <button type="submit" disabled={loading}>
-          {loading
-            ? "Please wait..."
-            : isLogin
-              ? "Login"
-              : "Register"}
-        </button>
+          <button
+            type="button"
+            className="register-button"
+            onClick={() => {
+              setIsLogin(!isLogin);
+              setMessage("");
+            }}
+          >
+            {isLogin
+              ? "Create a free account"
+              : "Already have an account? Sign in"}
+          </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setIsLogin(!isLogin);
-            setMessage("");
-          }}
-        >
-          {isLogin
-            ? "Need an account? Register"
-            : "Already registered? Login"}
-        </button>
-      </form>
+          <p className="login-terms">
+            By continuing, you agree to our
+            terms and privacy policy.
+          </p>
+        </form>
+      </section>
     </div>
   );
 }

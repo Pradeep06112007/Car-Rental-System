@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:5000";
+const API_URL = "http://localhost:5000/api/bookings";
 
 export default function BookingForm({ car, token, onClose }) {
   const [startDate, setStartDate] = useState("");
@@ -11,19 +10,28 @@ export default function BookingForm({ car, token, onClose }) {
   const [submitting, setSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
+  // Today's date in YYYY-MM-DD format
   const today = new Date().toLocaleDateString("en-CA");
 
   const submitBooking = async (event) => {
     event.preventDefault();
+
     setMessage("");
 
+    // Check login
     if (!token) {
       setMessage("Please log in before booking a car.");
       return;
     }
 
-    if (!startDate || !endDate || endDate <= startDate) {
-      setMessage("Choose a return date after the pick-up date.");
+    // Check dates
+    if (!startDate || !endDate) {
+      setMessage("Please select both dates.");
+      return;
+    }
+
+    if (endDate <= startDate) {
+      setMessage("Return date must be after the pick-up date.");
       return;
     }
 
@@ -31,48 +39,58 @@ export default function BookingForm({ car, token, onClose }) {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/bookings",
+        API_URL,
         {
           carId: car._id,
-          startDate: startDate,
-          endDate: endDate,
+          startDate,
+          endDate,
         },
         {
           headers: {
-            Authorization: "Bearer " + token,
+            Authorization: `Bearer ${token}`,
           },
         }
       );
 
-      console.log("Booking API response:", response.data);
+      console.log("Booking response:", response.data);
 
       const booking = response.data?.booking;
-      const totalAmount = booking?.totalAmount;
 
-      console.log("Full booking response:", response.data);
-      console.log("Extracted total amount:", totalAmount);
-
-      if (response.status === 201 && booking) {
-        setBookingSuccess(true);
-
-        if (totalAmount !== undefined && totalAmount !== null) {
-          setMessage(
-            "Booking created successfully! Total: ₹" +
-              Number(totalAmount).toLocaleString("en-IN")
-          );
-        } else {
-          setMessage(
-            "Booking created successfully, but the total amount is missing from the server response."
-          );
-        }
-      } else {
-        setMessage("The server response could not be verified.");
+      if (!booking) {
+        setMessage("Booking was created, but the server response is invalid.");
+        return;
       }
+
+      const totalAmount = Number(booking.totalAmount);
+
+      setBookingSuccess(true);
+
+      setMessage(
+        `Booking created successfully! Total: ₹${totalAmount.toLocaleString(
+          "en-IN"
+        )}`
+      );
     } catch (error) {
       console.error(
         "Booking error:",
         error.response?.data || error.message
       );
+
+      // If the token expired
+      if (error.response?.status === 401) {
+        setMessage("Your login session has expired. Please login again.");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        return;
+      }
+
+      // If dates are already booked
+      if (error.response?.status === 409) {
+        setMessage(
+          "This car is already booked for the selected dates. Please choose different dates."
+        );
+        return;
+      }
 
       setMessage(
         error.response?.data?.message ||
@@ -101,7 +119,10 @@ export default function BookingForm({ car, token, onClose }) {
           {Number(car.pricePerDay).toLocaleString("en-IN")} per day
         </p>
 
-        <label htmlFor="startDate">Pick-up date</label>
+        <label htmlFor="startDate">
+          Pick-up date
+        </label>
+
         <input
           id="startDate"
           type="date"
@@ -109,18 +130,22 @@ export default function BookingForm({ car, token, onClose }) {
           value={startDate}
           onChange={(event) => {
             const value = event.target.value;
+
             setStartDate(value);
             setMessage("");
             setBookingSuccess(false);
 
-            if (endDate && value && endDate <= value) {
+            if (endDate && endDate <= value) {
               setEndDate("");
             }
           }}
           required
         />
 
-        <label htmlFor="endDate">Return date</label>
+        <label htmlFor="endDate">
+          Return date
+        </label>
+
         <input
           id="endDate"
           type="date"
@@ -138,10 +163,11 @@ export default function BookingForm({ car, token, onClose }) {
           <p
             role="status"
             aria-live="polite"
-            style={{
-              color: bookingSuccess ? "green" : "inherit",
-              overflowWrap: "anywhere",
-            }}
+            className={
+              bookingSuccess
+                ? "booking-success"
+                : "booking-error"
+            }
           >
             {message}
           </p>
@@ -154,8 +180,8 @@ export default function BookingForm({ car, token, onClose }) {
           {submitting
             ? "Booking..."
             : bookingSuccess
-              ? "Booking Confirmed"
-              : "Confirm Booking"}
+            ? "Booking Confirmed"
+            : "Confirm Booking"}
         </button>
       </form>
     </div>
