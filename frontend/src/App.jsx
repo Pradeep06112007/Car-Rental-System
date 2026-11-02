@@ -1,8 +1,8 @@
 import "./App.css";
 import { useState } from "react";
-import CarList from "./components/CarList";
-import Auth from "./components/Auth";
-import MyBookings from "./components/MyBookings";
+import CarList from "./components/carlist.jsx";
+import Auth from "./components/auth.jsx";
+import MyBookings from "./components/mybookings.jsx";
 
 function App() {
   const [token, setToken] = useState(
