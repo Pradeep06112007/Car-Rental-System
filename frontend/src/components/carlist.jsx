@@ -1,7 +1,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import BookingForm from "./BookingForm";
+import BookingForm from "./bookingForm";
 
 const API_URL = "http://localhost:5000/api/cars";
 
