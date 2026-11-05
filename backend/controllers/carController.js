@@ -1,6 +1,6 @@
 
 const mongoose = require("mongoose");
-const Car = require("../models/Car");
+const Car = require("../models/car");
 
 // GET /api/cars - Get all cars
 const getCars = async (req, res) => {
