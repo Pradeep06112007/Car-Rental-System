@@ -2,7 +2,12 @@
 import { useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/auth";
+// Backend API configuration
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/+$/, "");
+
+const API_URL = `${API_BASE_URL}/api/auth`;
 
 export default function Auth({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -36,8 +41,9 @@ export default function Auth({ onLogin }) {
       if (isLogin) {
         const { token, user } = response.data;
 
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
+        if (!token || !user) {
+          throw new Error("Invalid login response from server.");
+        }
 
         onLogin(token, user);
       } else {
@@ -51,6 +57,7 @@ export default function Auth({ onLogin }) {
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
+          error.message ||
           "Authentication failed. Please try again."
       );
     } finally {
@@ -60,6 +67,7 @@ export default function Auth({ onLogin }) {
 
   return (
     <div className="login-page">
+
       {/* LEFT SIDE: DODGE CHALLENGER HERO */}
 
       <section className="login-left">
@@ -144,9 +152,7 @@ export default function Auth({ onLogin }) {
                   type="text"
                   placeholder="Enter your name"
                   value={name}
-                  onChange={(e) =>
-                    setName(e.target.value)
-                  }
+                  onChange={(e) => setName(e.target.value)}
                   autoComplete="name"
                   required
                 />
@@ -162,9 +168,7 @@ export default function Auth({ onLogin }) {
                   type="tel"
                   placeholder="Enter your phone number"
                   value={phone}
-                  onChange={(e) =>
-                    setPhone(e.target.value)
-                  }
+                  onChange={(e) => setPhone(e.target.value)}
                   autoComplete="tel"
                 />
               </div>
@@ -181,9 +185,7 @@ export default function Auth({ onLogin }) {
               type="email"
               placeholder="Enter your email"
               value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
+              onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               required
             />
@@ -199,9 +201,7 @@ export default function Auth({ onLogin }) {
               type="password"
               placeholder="Enter your password"
               value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
+              onChange={(e) => setPassword(e.target.value)}
               autoComplete={
                 isLogin
                   ? "current-password"
