@@ -2,63 +2,74 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:5000";
+// Backend API configuration
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/+$/, "");
 
-export default function MyBookings() {
+const API_URL = `${API_BASE_URL}/api/bookings/my`;
+
+export default function MyBookings({ token, onBack }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    async function fetchBookings() {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        setError("Please log in to view your bookings.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await axios.get(
-          API_URL + "/api/bookings/my",
-          {
-            headers: {
-              Authorization: "Bearer " + token,
-            },
-          }
-        );
-
-        const data = response.data;
-        const bookingList = Array.isArray(data)
-          ? data
-          : Array.isArray(data.bookings)
-            ? data.bookings
-            : [];
-
-        setBookings(bookingList);
-      } catch (err) {
-        console.error(
-          "Fetch bookings error:",
-          err.response?.data || err.message
-        );
-
-        setError(
-          err.response?.data?.message ||
-            "Unable to load bookings. Please try again."
-        );
-      } finally {
-        setLoading(false);
-      }
+  const fetchBookings = async () => {
+    if (!token) {
+      setError("Please log in to view your bookings.");
+      setLoading(false);
+      return;
     }
 
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await axios.get(API_URL, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = response.data;
+
+      const bookingList = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.bookings)
+        ? data.bookings
+        : [];
+
+      setBookings(bookingList);
+
+    } catch (err) {
+      console.error(
+        "Fetch bookings error:",
+        err.response?.data || err.message
+      );
+
+      setError(
+        err.response?.data?.message ||
+          "Unable to load bookings. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchBookings();
-  }, []);
+  }, [token]);
 
   function formatDate(date) {
     if (!date) return "Not available";
 
-    return new Date(date).toLocaleDateString("en-IN", {
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "Not available";
+    }
+
+    return parsedDate.toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -88,7 +99,18 @@ export default function MyBookings() {
     return (
       <section className="my-bookings">
         <h2>My Bookings</h2>
+
         <p role="alert">{error}</p>
+
+        <button type="button" onClick={fetchBookings}>
+          Try Again
+        </button>
+
+        {onBack && (
+          <button type="button" onClick={onBack}>
+            Back to Cars
+          </button>
+        )}
       </section>
     );
   }
@@ -96,6 +118,12 @@ export default function MyBookings() {
   return (
     <section className="my-bookings">
       <h2>My Bookings</h2>
+
+      {onBack && (
+        <button type="button" onClick={onBack}>
+          ← Back to Cars
+        </button>
+      )}
 
       {bookings.length === 0 ? (
         <p>You haven't booked any cars yet.</p>
@@ -128,7 +156,8 @@ export default function MyBookings() {
                 </p>
 
                 <p>
-                  Total amount: {formatAmount(booking.totalAmount)}
+                  Total amount:{" "}
+                  {formatAmount(booking.totalAmount)}
                 </p>
 
                 <p>
