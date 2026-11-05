@@ -1,17 +1,34 @@
+
 import { useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/bookings";
+// Backend API configuration
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/+$/, "");
+
+const API_URL = `${API_BASE_URL}/api/bookings`;
+
+// Get today's local date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const date = new Date();
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
 
 export default function BookingForm({ car, token, onClose }) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  // Today's date in YYYY-MM-DD format
-  const today = new Date().toLocaleDateString("en-CA");
+  const today = getTodayDate();
 
   const submitBooking = async (event) => {
     event.preventDefault();
@@ -30,8 +47,15 @@ export default function BookingForm({ car, token, onClose }) {
       return;
     }
 
+    if (startDate < today) {
+      setMessage("Pick-up date cannot be in the past.");
+      return;
+    }
+
     if (endDate <= startDate) {
-      setMessage("Return date must be after the pick-up date.");
+      setMessage(
+        "Return date must be after the pick-up date."
+      );
       return;
     }
 
@@ -57,7 +81,9 @@ export default function BookingForm({ car, token, onClose }) {
       const booking = response.data?.booking;
 
       if (!booking) {
-        setMessage("Booking was created, but the server response is invalid.");
+        setMessage(
+          "Booking was created, but the server response is invalid."
+        );
         return;
       }
 
@@ -70,21 +96,31 @@ export default function BookingForm({ car, token, onClose }) {
           "en-IN"
         )}`
       );
+
     } catch (error) {
       console.error(
         "Booking error:",
         error.response?.data || error.message
       );
 
-      // If the token expired
+      // Handle expired login session
       if (error.response?.status === 401) {
-        setMessage("Your login session has expired. Please login again.");
+        setMessage(
+          "Your login session has expired. Please login again."
+        );
+
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+
+        // Refresh app state so the login page appears again
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+
         return;
       }
 
-      // If dates are already booked
+      // Handle unavailable booking dates
       if (error.response?.status === 409) {
         setMessage(
           "This car is already booked for the selected dates. Please choose different dates."
@@ -96,6 +132,7 @@ export default function BookingForm({ car, token, onClose }) {
         error.response?.data?.message ||
           "Booking failed. Please try again."
       );
+
     } finally {
       setSubmitting(false);
     }
@@ -103,7 +140,10 @@ export default function BookingForm({ car, token, onClose }) {
 
   return (
     <div className="booking-overlay">
-      <form className="booking-form" onSubmit={submitBooking}>
+      <form
+        className="booking-form"
+        onSubmit={submitBooking}
+      >
         <button
           type="button"
           className="booking-close"
@@ -116,7 +156,8 @@ export default function BookingForm({ car, token, onClose }) {
 
         <p>
           Rental price: ₹
-          {Number(car.pricePerDay).toLocaleString("en-IN")} per day
+          {Number(car.pricePerDay).toLocaleString("en-IN")}
+          {" "}per day
         </p>
 
         <label htmlFor="startDate">
