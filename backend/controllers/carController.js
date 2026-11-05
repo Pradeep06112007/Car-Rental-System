@@ -6,8 +6,11 @@ const Car = require("../models/car");
 const getCars = async (req, res) => {
   try {
     const cars = await Car.find().sort({ createdAt: -1 });
+
     return res.status(200).json(cars);
   } catch (error) {
+    console.error("Get cars error:", error);
+
     return res.status(500).json({
       message: "Failed to retrieve cars",
     });
@@ -17,25 +20,33 @@ const getCars = async (req, res) => {
 // GET /api/cars/:id - Get one car
 const getCarById = async (req, res) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
-      return res.status(400).json({ message: "Invalid car ID" });
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        message: "Invalid car ID",
+      });
     }
 
-    const car = await Car.findById(req.params.id);
+    const car = await Car.findById(id);
 
     if (!car) {
-      return res.status(404).json({ message: "Car not found" });
+      return res.status(404).json({
+        message: "Car not found",
+      });
     }
 
     return res.status(200).json(car);
   } catch (error) {
+    console.error("Get car by ID error:", error);
+
     return res.status(500).json({
       message: "Failed to retrieve car",
     });
   }
 };
 
-// POST /api/cars - Add a car (admin only)
+// POST /api/cars - Add a car
 const createCar = async (req, res) => {
   try {
     const {
@@ -84,21 +95,27 @@ const createCar = async (req, res) => {
 
     return res.status(201).json(car);
   } catch (error) {
+    console.error("Create car error:", error);
+
     return res.status(500).json({
       message: "Failed to create car",
     });
   }
 };
 
-// PUT /api/cars/:id - Update a car (admin only)
+// PUT /api/cars/:id - Update a car
 const updateCar = async (req, res) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
-      return res.status(400).json({ message: "Invalid car ID" });
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        message: "Invalid car ID",
+      });
     }
 
     const car = await Car.findByIdAndUpdate(
-      req.params.id,
+      id,
       req.body,
       {
         new: true,
@@ -107,34 +124,46 @@ const updateCar = async (req, res) => {
     );
 
     if (!car) {
-      return res.status(404).json({ message: "Car not found" });
+      return res.status(404).json({
+        message: "Car not found",
+      });
     }
 
     return res.status(200).json(car);
   } catch (error) {
+    console.error("Update car error:", error);
+
     return res.status(500).json({
       message: "Failed to update car",
     });
   }
 };
 
-// DELETE /api/cars/:id - Delete a car (admin only)
+// DELETE /api/cars/:id - Delete a car
 const deleteCar = async (req, res) => {
   try {
-    if (!mongoose.isValidObjectId(req.params.id)) {
-      return res.status(400).json({ message: "Invalid car ID" });
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({
+        message: "Invalid car ID",
+      });
     }
 
-    const car = await Car.findByIdAndDelete(req.params.id);
+    const car = await Car.findByIdAndDelete(id);
 
     if (!car) {
-      return res.status(404).json({ message: "Car not found" });
+      return res.status(404).json({
+        message: "Car not found",
+      });
     }
 
     return res.status(200).json({
       message: "Car deleted successfully",
     });
   } catch (error) {
+    console.error("Delete car error:", error);
+
     return res.status(500).json({
       message: "Failed to delete car",
     });
