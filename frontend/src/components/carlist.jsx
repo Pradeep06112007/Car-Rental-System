@@ -1,9 +1,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import BookingForm from "./bookingForm";
+import BookingForm from "./bookingform.jsx";
 
-const API_URL = "http://localhost:5000/api/cars";
+// Backend API configuration
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/+$/, "");
+
+const API_URL = `${API_BASE_URL}/api/cars`;
 
 export default function CarList({ token }) {
   const [cars, setCars] = useState([]);
@@ -18,31 +23,42 @@ export default function CarList({ token }) {
   const [maxPrice, setMaxPrice] = useState(10000);
   const [sort, setSort] = useState("recommended");
 
+  // Fetch cars from backend
+  const fetchCars = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await axios.get(API_URL);
+
+      // Support common API response formats
+      const data = response.data;
+
+      const carData = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.cars)
+        ? data.cars
+        : [];
+
+      setCars(carData);
+
+    } catch (err) {
+      console.error("Failed to load cars:", err);
+
+      setError(
+        err.response?.data?.message ||
+          "Unable to load cars. Check the backend and database connection."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchCars = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const response = await axios.get(API_URL);
-        const data = response.data;
-
-        setCars(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Failed to load cars:", err);
-
-        setError(
-          err.response?.data?.message ||
-            "Unable to load cars. Check the backend and database connection."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCars();
   }, []);
 
+  // Filter and sort cars
   const filteredCars = useMemo(() => {
     let result = cars.filter((car) => {
       const text = [
@@ -69,11 +85,15 @@ export default function CarList({ token }) {
 
     if (sort === "price-low") {
       result.sort(
-        (a, b) => a.pricePerDay - b.pricePerDay
+        (a, b) =>
+          Number(a.pricePerDay || 0) -
+          Number(b.pricePerDay || 0)
       );
     } else if (sort === "price-high") {
       result.sort(
-        (a, b) => b.pricePerDay - a.pricePerDay
+        (a, b) =>
+          Number(b.pricePerDay || 0) -
+          Number(a.pricePerDay || 0)
       );
     }
 
@@ -88,6 +108,7 @@ export default function CarList({ token }) {
     sort,
   ]);
 
+  // Reset all filters
   const resetFilters = () => {
     setSearch("");
     setCategory("All");
@@ -97,6 +118,7 @@ export default function CarList({ token }) {
     setSort("recommended");
   };
 
+  // Open booking form
   const handleBookNow = (car) => {
     if (!token) {
       alert("Please log in before booking a car.");
@@ -108,6 +130,9 @@ export default function CarList({ token }) {
 
   return (
     <section className="rental-dashboard">
+
+      {/* FILTER SIDEBAR */}
+
       <aside className="rental-filters">
         <div className="filter-heading">
           <div>
@@ -177,7 +202,9 @@ export default function CarList({ token }) {
           max="10000"
           step="500"
           value={maxPrice}
-          onChange={(e) => setMaxPrice(Number(e.target.value))}
+          onChange={(e) =>
+            setMaxPrice(Number(e.target.value))
+          }
           aria-label="Maximum price per day"
         />
 
@@ -220,9 +247,14 @@ export default function CarList({ token }) {
 
         <div className="filter-note">
           <span>✓</span>
-          <p>Compare available vehicles and choose the right ride for your journey.</p>
+          <p>
+            Compare available vehicles and choose the right
+            ride for your journey.
+          </p>
         </div>
       </aside>
+
+      {/* CAR RESULTS */}
 
       <div className="rental-results">
         <div className="results-toolbar">
@@ -253,8 +285,12 @@ export default function CarList({ token }) {
               aria-label="Sort vehicles"
             >
               <option value="recommended">Recommended</option>
-              <option value="price-low">Price: low to high</option>
-              <option value="price-high">Price: high to low</option>
+              <option value="price-low">
+                Price: low to high
+              </option>
+              <option value="price-high">
+                Price: high to low
+              </option>
             </select>
           </label>
         </div>
@@ -269,10 +305,11 @@ export default function CarList({ token }) {
           <div className="rental-state rental-error" role="alert">
             <h3>Unable to load vehicles</h3>
             <p>{error}</p>
+
             <button
               type="button"
               className="rental-primary-button"
-              onClick={() => window.location.reload()}
+              onClick={fetchCars}
             >
               Try again
             </button>
@@ -282,6 +319,7 @@ export default function CarList({ token }) {
             <div className="empty-car-icon">⌕</div>
             <h3>No matching cars found</h3>
             <p>Try changing your filters or search terms.</p>
+
             <button
               type="button"
               className="rental-primary-button"
@@ -293,12 +331,17 @@ export default function CarList({ token }) {
         ) : (
           <div className="rental-car-grid">
             {filteredCars.map((car) => (
-              <article className="rental-car-card" key={car._id}>
+              <article
+                className="rental-car-card"
+                key={car._id}
+              >
                 <div className="rental-car-image">
                   {car.image ? (
                     <img
                       src={car.image}
-                      alt={`${car.brand || ""} ${car.model || car.name}`}
+                      alt={`${car.brand || ""} ${
+                        car.model || car.name
+                      }`}
                     />
                   ) : (
                     <div className="car-image-placeholder">
@@ -317,6 +360,7 @@ export default function CarList({ token }) {
                   <div className="rental-car-title">
                     <div>
                       <h3>{car.name}</h3>
+
                       <p>
                         {[car.brand, car.model, car.year]
                           .filter(Boolean)
@@ -347,10 +391,11 @@ export default function CarList({ token }) {
                     <div className="rental-price">
                       <strong>
                         ₹
-                        {Number(car.pricePerDay).toLocaleString(
-                          "en-IN"
-                        )}
+                        {Number(
+                          car.pricePerDay || 0
+                        ).toLocaleString("en-IN")}
                       </strong>
+
                       <span>/ day</span>
                     </div>
 
@@ -368,6 +413,8 @@ export default function CarList({ token }) {
           </div>
         )}
       </div>
+
+      {/* BOOKING FORM */}
 
       {selectedCar && (
         <BookingForm
