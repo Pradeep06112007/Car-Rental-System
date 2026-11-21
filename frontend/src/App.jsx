@@ -44,9 +44,12 @@ function App() {
 
   if (!token) {
     return (
-      <Auth
-        onLogin={handleLogin}
-      />
+      <div className="auth-wrapper">
+        <Auth onLogin={handleLogin} />
+        <footer className="demo-footer">
+          <p>Student Portfolio Project — Demo Purposes Only</p>
+        </footer>
+      </div>
     );
   }
 
@@ -103,6 +106,10 @@ function App() {
       ) : (
         <CarList token={token} />
       )}
+
+      <footer className="demo-footer">
+        <p>Student Portfolio Project — Demo Purposes Only</p>
+      </footer>
     </main>
   );
 }
