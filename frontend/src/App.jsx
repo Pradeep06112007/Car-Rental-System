@@ -1,7 +1,7 @@
 
 import "./App.css";
 import { useState } from "react";
-HEAD
+"HEAD"
 
 
 
@@ -45,7 +45,7 @@ function App() {
 
   // First page: Login
   if (!token) {
-HEAD
+"HEAD"
     return (
       <div className="auth-wrapper">
         <Auth onLogin={handleLogin} />
