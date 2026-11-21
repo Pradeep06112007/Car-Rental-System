@@ -2,7 +2,17 @@
 import { useState } from "react";
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/auth";
+// Backend API configuration
+const configuredURL = import.meta.env.VITE_API_URL?.trim();
+
+const API_BASE_URL = (
+  configuredURL ||
+  (import.meta.env.DEV ? "http://localhost:5000" : "")
+).replace(/\/+$/, "");
+
+const API_URL = API_BASE_URL
+  ? `${API_BASE_URL}/api/auth`
+  : null;
 
 export default function Auth({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -22,22 +32,46 @@ export default function Auth({ onLogin }) {
     setLoading(true);
 
     try {
+      // Prevent production requests to localhost
+      if (!API_URL) {
+        throw new Error(
+          "Backend URL is missing. Check Vercel VITE_API_URL environment variable and redeploy."
+        );
+      }
+
       const endpoint = isLogin ? "/login" : "/register";
 
       const payload = isLogin
-        ? { email, password }
-        : { name, email, password, phone };
+        ? {
+            email: email.trim().toLowerCase(),
+            password,
+          }
+        : {
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            password,
+            phone: phone.trim(),
+          };
 
       const response = await axios.post(
         `${API_URL}${endpoint}`,
-        payload
+        payload,
+        {
+          timeout: 20000,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       if (isLogin) {
         const { token, user } = response.data;
 
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
+        if (!token || !user) {
+          throw new Error(
+            "Invalid login response from backend."
+          );
+        }
 
         onLogin(token, user);
       } else {
@@ -49,10 +83,26 @@ export default function Auth({ onLogin }) {
         setPassword("");
       }
     } catch (error) {
-      setMessage(
-        error.response?.data?.message ||
-          "Authentication failed. Please try again."
-      );
+      console.error("Authentication error:", error);
+
+      let errorMessage;
+
+      if (error.response) {
+        errorMessage =
+          error.response.data?.message ||
+          `Server error: ${error.response.status}`;
+      } else if (error.code === "ECONNABORTED") {
+        errorMessage =
+          "Request timed out. Please try again.";
+      } else if (error.request) {
+        errorMessage =
+          "Cannot connect to the backend. Check the API URL, CORS settings, and Render server.";
+      } else {
+        errorMessage =
+          error.message || "Authentication failed.";
+      }
+
+      setMessage(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -60,7 +110,6 @@ export default function Auth({ onLogin }) {
 
   return (
     <div className="login-page">
-      {/* LEFT SIDE: DODGE CHALLENGER HERO */}
 
       <section className="login-left">
         <div
@@ -113,8 +162,6 @@ export default function Auth({ onLogin }) {
         </div>
       </section>
 
-      {/* RIGHT SIDE: LOGIN AND REGISTRATION */}
-
       <section className="login-right">
         <form
           className="login-card"
@@ -144,9 +191,7 @@ export default function Auth({ onLogin }) {
                   type="text"
                   placeholder="Enter your name"
                   value={name}
-                  onChange={(e) =>
-                    setName(e.target.value)
-                  }
+                  onChange={(e) => setName(e.target.value)}
                   autoComplete="name"
                   required
                 />
@@ -162,9 +207,7 @@ export default function Auth({ onLogin }) {
                   type="tel"
                   placeholder="Enter your phone number"
                   value={phone}
-                  onChange={(e) =>
-                    setPhone(e.target.value)
-                  }
+                  onChange={(e) => setPhone(e.target.value)}
                   autoComplete="tel"
                 />
               </div>
@@ -181,9 +224,7 @@ export default function Auth({ onLogin }) {
               type="email"
               placeholder="Enter your email"
               value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
+              onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               required
             />
@@ -199,9 +240,7 @@ export default function Auth({ onLogin }) {
               type="password"
               placeholder="Enter your password"
               value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
+              onChange={(e) => setPassword(e.target.value)}
               autoComplete={
                 isLogin
                   ? "current-password"
@@ -215,7 +254,7 @@ export default function Auth({ onLogin }) {
           {message && (
             <p
               className="login-message"
-              role="status"
+              role="alert"
               aria-live="polite"
             >
               {message}
@@ -241,6 +280,7 @@ export default function Auth({ onLogin }) {
           <button
             type="button"
             className="register-button"
+            disabled={loading}
             onClick={() => {
               setIsLogin(!isLogin);
               setMessage("");

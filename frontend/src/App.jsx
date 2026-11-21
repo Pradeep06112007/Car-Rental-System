@@ -1,5 +1,10 @@
+
 import "./App.css";
 import { useState } from "react";
+HEAD
+
+
+
 import CarList from "./components/carlist.jsx";
 import Auth from "./components/auth.jsx";
 import MyBookings from "./components/mybookings.jsx";
@@ -38,11 +43,9 @@ function App() {
     setShowBookings(false);
   };
 
-  /* =========================
-     FIRST PAGE = LOGIN
-  ========================= */
-
+  // First page: Login
   if (!token) {
+HEAD
     return (
       <div className="auth-wrapper">
         <Auth onLogin={handleLogin} />
@@ -51,12 +54,11 @@ function App() {
         </footer>
       </div>
     );
+
+    return <Auth onLogin={handleLogin} />;
   }
 
-  /* =========================
-     AFTER LOGIN = CAR WEBSITE
-  ========================= */
-
+  // After login: Car rental website
   return (
     <main>
       <header className="site-header">

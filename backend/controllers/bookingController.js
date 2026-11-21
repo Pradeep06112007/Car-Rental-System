@@ -1,7 +1,7 @@
 
 const mongoose = require("mongoose");
 const Booking = require("../models/Booking");
-const Car = require("../models/Car");
+const Car = require("../models/car");
 
 // POST /api/bookings - Create a booking
 const createBooking = async (req, res) => {
